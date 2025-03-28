@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gridworld</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 40px;
+            background-color: #f4f4f4;
+        }
+
+        h2 { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #333; 
+        }
+
+        h3 { 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #444; 
+        }
+
+        input[type="number"] { 
+            width: 50px; 
+            text-align: center; 
+            padding: 5px; 
+            margin-right: 5px; 
+        }
+
+        button {
+            font-size: 16px;
+            background-color: #888888;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #5a5a5a;
+        }
+
+        .grid-container {
+            display: grid;
+            column-gap: 18px; /* 只調整水平間距 */
+            row-gap: 5px;    /* 可選：控制垂直間距 */
+            margin-top: 10px;
+            padding: 10px;
+            border-collapse: collapse;
+        }
+
+        .grid-item {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid black;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            border-radius: 5px; /* 設置圓角，數值越大圓角越明顯 */
+        }
+
+        /* ✅ 讓 Gridworld 置中 */
+        .grid-item:hover {
+            transform: scale(1.1);
+        }
+
+        #grid-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        #matrix-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        #simulation-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        @media (max-width: 768px) {
+            #matrix-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        .start { 
+            background-color: #64a866; 
+            color: white; 
+        }
+
+        .end { 
+            background-color: #f5736a; 
+            color: white; 
+        }
+
+        .obstacle { 
+            background-color: #9E9E9E; 
+            color: white; 
+        }
+    </style>
+</head>
+<body>
+
+<h2>Gridworld</h2>
+<p>Enter a number between 5 and 9: 
+    <input type="number" id="grid-size" min="5" max="9">
+    <button onclick="generateGrid()">Generate Square</button>
+</p><br>
+<p>
+    a. Click on a cell to set up the start grid as green <br>
+    b. Click on a cell to set up the end grid as red <br>
+    c. Click on n-2 cells to set up the obstacle grid as gray
+</p>
+
+<!-- Gridworld 區域 -->
+<div id="grid-container">
+    <div>
+        <h3><span id="grid-title">5 x 5 Square:</span></h3>
+        <div id="grid" class="grid-container"></div><br>
+        <button id="start-game" onclick="startGame()">Start Game</button>
+    </div>
+</div>
+
+<div id="simulation-container">
+    <!-- Maze Simulation -->
+    <div id="maze-container">
+        <h3>Simulation:</h3>
+        <div id="maze-grid" class="grid-container"></div>
+    </div>
+
+    <!-- Value Matrix -->
+    <div>
+        <h3>Value Matrix (Final):</h3>
+        <div id="value-matrix" class="grid-container"></div>
+    </div>
+
+    <!-- Policy Matrix -->
+    <div>
+        <h3>Policy Matrix (Final):</h3>
+        <div id="policy-matrix" class="grid-container"></div>
+    </div>
+</div>
+
+<script>
+let gridSize = 5; 
+let startCell = null;
+let endCell = null;
+let obstacles = new Set();
+
+function generateGrid() {
+    gridSize = parseInt(document.getElementById("grid-size").value);
+    if (gridSize < 5 || gridSize > 9 || isNaN(gridSize)) {
+        alert("Please enter a valid number between 5 and 9.");
+        return;
+    }
+
+    $.ajax({
+        url: "/set_size",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ size: gridSize }),
+        success: function(response) {
+            if (response.status === "success") {
+                startCell = null;
+                endCell = null;
+                obstacles.clear();
+                renderGrid();
+            } else {
+                alert(response.message);
+            }
+        },
+        error: function(xhr) {
+            console.log("AJAX Error:", xhr.responseText);
+            alert("Error setting grid size.");
+        }
+    });
+}
+
+function renderGrid() {
+    let grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    grid.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
+
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            let cell = document.createElement("div");
+            cell.classList.add("grid-item");
+            cell.textContent = row * gridSize + col + 1;
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            cell.addEventListener("click", () => handleCellClick(cell));
+            grid.appendChild(cell);
+        }
+    }
+    document.getElementById("grid-title").textContent = `${gridSize} x ${gridSize} Square:`;
+}
+
+function handleCellClick(cell) {
+    let row = parseInt(cell.dataset.row);
+    let col = parseInt(cell.dataset.col);
+    let cellPos = [row, col];
+
+    if (startCell && startCell[0] === row && startCell[1] === col) {
+        startCell = null;
+        cell.className = "grid-item";
+    } else if (endCell && endCell[0] === row && endCell[1] === col) {
+        endCell = null;
+        cell.className = "grid-item";
+    } else if (obstacles.has(JSON.stringify(cellPos))) {
+        obstacles.delete(JSON.stringify(cellPos));
+        cell.className = "grid-item";
+    } else if (!startCell) {
+        startCell = cellPos;
+        cell.className = "grid-item start";
+    } else if (!endCell) {
+        endCell = cellPos;
+        cell.className = "grid-item end";
+    } else if (obstacles.size < gridSize - 2) {
+        obstacles.add(JSON.stringify(cellPos));
+        cell.className = "grid-item obstacle";
+    } else {
+        alert(`You can only place up to ${gridSize - 2} obstacles.`);
+    }
+}
+
+function startGame() {
+    if (!startCell || !endCell) {
+        alert("Please select both a start and end cell.");
+        return;
+    }
+
+    let obstacleList = Array.from(obstacles).map(JSON.parse);
+
+    $.ajax({
+        url: "/find_best_path",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            start: startCell,
+            end: endCell,
+            obstacles: obstacleList,
+            grid_size: gridSize
+        }),
+        success: function(response) {
+            if (response.status === "success") {
+                renderMatrix("value-matrix", response.value_matrix, false);
+                renderMatrix("policy-matrix", response.policy_matrix, true);
+
+                let paths = response.paths;
+                let finalPath = response.final_best_path; // 🆕 取得最優路徑
+
+                showMaze();
+
+                // ✅ 等待動畫播放完畢，再顯示最優路徑
+                animatePaths(paths, () => {
+                    highlightFinalPath(finalPath);
+                });
+
+            } else {
+                alert(response.message);
+            }
+        },
+        error: function(xhr) {
+            alert("Error calculating matrices.");
+        }
+    });
+}
+
+function highlightFinalPath(finalPath) {
+    for (let i = 0; i < finalPath.length; i++) {
+        setTimeout(() => {
+            let cell = finalPath[i];
+            let nextCell = i < finalPath.length - 1 ? finalPath[i + 1] : null; // 下一步
+            let cellElement = document.querySelector(`#maze-grid [data-row="${cell[0]}"][data-col="${cell[1]}"]`);
+
+            if (cellElement) {
+                // ✅ 確保起點 & 終點顏色不變，且終點不顯示箭頭
+                if (JSON.stringify(cell) !== JSON.stringify(startCell) && JSON.stringify(cell) !== JSON.stringify(endCell)) {
+                    cellElement.style.backgroundColor = "#FFD700"; // 🏆 最優路徑標記為金黃色
+                } else if (JSON.stringify(cell) === JSON.stringify(startCell)) {
+                    cellElement.style.backgroundColor = "#64a866"; // ✅ 保持起點綠色
+                } else if (JSON.stringify(cell) === JSON.stringify(endCell)) {
+                    cellElement.style.backgroundColor = "#f5736a"; // ✅ 保持終點紅色
+                    cellElement.textContent = ""; // ✅ 確保終點不顯示箭頭
+                }
+
+                cellElement.style.color = "black"; // ✅ 設定箭頭顏色為黑色
+
+                // ✅ 只有當 `nextCell` 存在時，才計算箭頭方向
+                if (nextCell) {
+                    let arrow = getArrowDirection(cell, nextCell);
+                    cellElement.textContent = arrow; // 🏹 顯示箭頭
+                }
+            }
+        }, i * 150);
+    }
+}
+
+function getArrowDirection(current, next) {
+    let [currRow, currCol] = current;
+    let [nextRow, nextCol] = next;
+
+    if (nextRow < currRow) return "↑";  // 往上
+    if (nextRow > currRow) return "↓";  // 往下
+    if (nextCol < currCol) return "←";  // 往左
+    if (nextCol > currCol) return "→";  // 往右
+    return "";
+}
+
+function showMaze() {
+    let maze = document.getElementById("maze-grid");
+    maze.innerHTML = "";
+    maze.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
+    maze.style.display = "grid";
+
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            let cell = document.createElement("div");
+            cell.classList.add("grid-item");
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+
+            let cellPos = JSON.stringify([row, col]);
+            if (startCell && startCell[0] === row && startCell[1] === col) {
+                cell.classList.add("start");
+            } else if (endCell && endCell[0] === row && endCell[1] === col) {
+                cell.classList.add("end");
+            } else if (obstacles.has(cellPos)) {
+                cell.classList.add("obstacle");
+            }
+
+            maze.appendChild(cell);
+        }
+    }
+}
+
+function closeMaze() {
+    document.getElementById("maze-container").style.display = "none";
+}
+
+function animatePaths(paths, callback) {
+    let iteration = 0;
+
+    function animatePath() {
+        if (iteration >= paths.length) {
+            if (callback) callback(); // ✅ 動畫結束後執行 callback (顯示最優路徑)
+            return;
+        }
+
+        let path = paths[iteration];
+        let previousCell = null;
+
+        path.forEach((cell, index) => {
+            setTimeout(() => {
+                let cellElement = document.querySelector(`#maze-grid [data-row="${cell[0]}"][data-col="${cell[1]}"]`);
+                
+                // ✅ 恢復前一步的顏色 & 清除箭頭
+                if (previousCell) {
+                    let prevElement = document.querySelector(`#maze-grid [data-row="${previousCell[0]}"][data-col="${previousCell[1]}"]`);
+                    if (prevElement) {
+                        if (JSON.stringify(previousCell) === JSON.stringify(startCell)) {
+                            prevElement.classList.add("start");
+                            prevElement.style.backgroundColor = "#64a866"; // ✅ 起點綠色不變
+                            prevElement.textContent = ""; // 清除箭頭
+                        } else if (JSON.stringify(previousCell) === JSON.stringify(endCell)) {
+                            prevElement.classList.add("end");
+                            prevElement.style.backgroundColor = "#f5736a"; // ✅ 終點紅色不變
+                            prevElement.textContent = ""; // 確保終點不顯示箭頭
+                        } else if (obstacles.has(JSON.stringify(previousCell))) {
+                            prevElement.classList.add("obstacle");
+                            prevElement.textContent = ""; // 清除箭頭
+                        } else {
+                            prevElement.style.backgroundColor = "#FFFFFF"; // ✅ 普通路徑恢復白色
+                            prevElement.textContent = ""; // 清除箭頭
+                        }
+                    }
+                }
+
+                // ✅ 更新當前步驟的顏色 & 顯示箭頭
+                if (cellElement) {
+                    // ✅ 普通路徑顏色變為 lightgreen
+                    if (JSON.stringify(cell) === JSON.stringify(startCell)) {
+                        cellElement.style.backgroundColor = "#64a866"; // ✅ 起點綠色
+                    } else if (JSON.stringify(cell) === JSON.stringify(endCell)) {
+                        cellElement.style.backgroundColor = "#f5736a"; // ✅ 終點紅色不變
+                        cellElement.textContent = ""; // ✅ 確保終點不顯示箭頭
+                    } else {
+                        cellElement.style.backgroundColor = "#90EE90"; // ✅ 普通路徑 lightgreen
+                    }
+
+                    cellElement.style.color = "black"; // ✅ 設定箭頭為黑色
+
+                    if (previousCell && JSON.stringify(cell) !== JSON.stringify(endCell)) {
+                        let arrow = getArrowDirection(previousCell, cell);
+                        cellElement.textContent = arrow; // 🏹 顯示箭頭
+                    }
+                }
+
+                previousCell = cell; // ✅ 更新前一步的 cell
+            }, index * 100);
+        });
+
+        iteration++;
+        setTimeout(animatePath, path.length * 100);
+    }
+
+    animatePath();
+}
+
+function renderMatrix(id, matrix, isPolicy) {
+    let container = document.getElementById(id);
+    container.innerHTML = "";
+    container.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
+
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            let cell = document.createElement("div");
+            cell.classList.add("grid-item");
+
+            // ✅ 保留格子顏色 (start, end, obstacle)
+            let cellPos = JSON.stringify([row, col]);
+            if (startCell && startCell[0] === row && startCell[1] === col) {
+                cell.classList.add("start");
+            } else if (endCell && endCell[0] === row && endCell[1] === col) {
+                cell.classList.add("end");
+            } else if (obstacles.has(cellPos)) {
+                cell.classList.add("obstacle");
+            }
+
+            // ✅ 設定數值或箭頭
+            if (isPolicy) {
+                let actions = matrix[row][col];
+                cell.innerHTML = actions.replace(/↑/g, "↑ ")
+                                        .replace(/↓/g, "↓ ")
+                                        .replace(/←/g, "← ")
+                                        .replace(/→/g, "→ ");
+            } else {
+                cell.textContent = matrix[row][col].toFixed(2);
+            }
+
+            container.appendChild(cell);
+        }
+    }
+}
+
+window.onload = renderGrid;
+</script>
+
+</body>
+</html>
