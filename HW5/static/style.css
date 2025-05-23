@@ -1,0 +1,267 @@
+body {
+    font-family: 'Poppins', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f7f6; /* Lighter, slightly greenish gray */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    width: 90%;
+    max-width: 1100px; /* Slightly increased max-width */
+}
+
+h1, h2 {
+    text-align: center;
+    color: #2c3e50; /* Darker, more modern blue-gray */
+    margin-bottom: 25px;
+}
+
+h1 {
+    font-size: 2.2em;
+    font-weight: 600;
+}
+
+h2 {
+    font-size: 1.6em;
+    font-weight: 500;
+    margin-top: 30px; /* Added margin top for separation */
+}
+
+.controls, .tool-selection, .buttons {
+    margin-bottom: 25px;
+    display: flex;
+    gap: 15px; /* Increased gap */
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 0; /* Added some vertical padding */
+}
+
+.controls label, .tool-selection span {
+    font-weight: 500;
+    color: #555;
+}
+
+.tool-selection label {
+    cursor: pointer;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tool-selection input[type="radio"] {
+    margin-right: 5px;
+    accent-color: #4A90E2; /* Match primary color */
+}
+
+.tool-selection input[type="radio"] {
+    display: none; /* Hide the actual radio button */
+}
+
+.tool-selection label:has(input[type="radio"]:checked) {
+    background-color: #4A90E2;
+    color: white;
+    border-color: #4A90E2;
+}
+
+.grid-container {
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.grid-label {
+    font-weight: 600; /* Bolder label */
+    margin-bottom: 10px; /* Increased margin */
+    font-size: 1.1em;
+    color: #333;
+}
+
+#grid, .grid-display {
+    display: grid;
+    border: 1px solid #d0d0d0; /* Slightly darker border for definition */
+    background-color: #fdfdfd;
+    border-radius: 4px; /* Subtle rounding */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow */
+}
+
+.grid-cell {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e0e0e0; /* Lighter cell borders */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.1em; /* Slightly larger icons/text */
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
+#grid .grid-cell:hover {
+    background-color: #f0f0f0; /* Subtle hover for interactive grid */
+    transform: scale(1.05);
+}
+
+.grid-cell.empty { background-color: #fff; }
+.grid-cell.start { background-color: #4CAF50; color: white; content: 'S'; } /* Green */
+.grid-cell.goal { background-color: #F44336; color: white; content: 'G'; }  /* Red */
+.grid-cell.obstacle { background-color: #9E9E9E; color: #fff } /* Gray */
+.grid-cell.player {
+    background-color: #ffdb3b;
+    animation: pulse 1.5s infinite alternate;
+}
+
+.matrices-and-simulation {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+    width: 100%;
+    margin-bottom: 25px;
+}
+
+.simulation-container {
+    width: 30%;
+}
+
+.matrices {
+    display: flex;
+    flex-direction: row; /* 改為水平排列 */
+    justify-content: space-between; /* 平均分配空間 */
+    gap: 20px; /* 元素之間的間距 */
+    margin-top: 30px;
+    width: 100%; /* 確保使用全寬 */
+    flex-wrap: wrap; /* 在小螢幕上允許換行 */
+}
+
+.matrix-container {
+    flex: 1; /* 平均分配空間 */
+    min-width: 280px; /* 最小寬度 */
+    max-width: calc(33.333% - 20px); /* 確保在大螢幕上每個不超過 1/3 寬度 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.matrix-container {
+    flex: 1;
+    min-width: 280px; /* Slightly increased min-width */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9; /* Light background for matrix containers */
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.obstacle-counter {
+    margin: 10px 0;
+    font-weight: 500;
+    color: #555;
+    text-align: center;
+}
+
+table {
+    border-collapse: collapse;
+    margin-top: 15px; /* Increased margin */
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+th, td {
+    border: 1px solid #dadada; /* Lighter border for table cells */
+    width: 40px; /* Changed from 42px to match .grid-cell */
+    height: 40px; /* Changed from 42px to match .grid-cell */
+    text-align: center;
+    vertical-align: middle;
+    font-size: 0.85em; /* Adjusted font size */
+    box-sizing: border-box;
+}
+
+th {
+    background-color: #e9ecef; /* Light gray for table headers */
+    font-weight: 600;
+    color: #333;
+}
+
+#simulationGrid .grid-cell {
+    cursor: default; /* Simulation grid is not interactive by click */
+}
+
+#simulationGrid .grid-cell:hover {
+    transform: none; /* No hover transform for simulation grid */
+}
+
+button {
+    padding: 10px 20px; /* Increased padding */
+    font-family: 'Poppins', sans-serif; /* Consistent font */
+    font-weight: 500; /* Medium weight */
+    background-color: #4A90E2; /* Primary blue */
+    color: white;
+    border: none;
+    border-radius: 6px; /* Rounded corners */
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button:hover {
+    background-color: #357ABD; /* Darker blue on hover */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+button:active {
+    background-color: #2a6496;
+    transform: translateY(0px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+#clearGrid {
+    background-color: #6c757d; /* Grayish color */
+}
+#clearGrid:hover {
+    background-color: #5a6268;
+}
+#clearGrid:active {
+    background-color: #545b62;
+}
+
+input[type="number"] {
+    padding: 10px; /* Increased padding */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 70px; /* Increased width */
+    font-family: 'Poppins', sans-serif;
+    font-size: 1em;
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+input[type="number"]:focus {
+    border-color: #4A90E2;
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+    outline: none;
+}
